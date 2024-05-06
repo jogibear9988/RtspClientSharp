@@ -10,7 +10,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		avcodec_register_all();
 #if defined(_DEBUG)
 		av_log_set_level(AV_LOG_VERBOSE);
 #else
