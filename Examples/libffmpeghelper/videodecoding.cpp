@@ -31,7 +31,7 @@ int create_video_decoder(int codec_id, void **handle)
 	if (!context)
 		return -2;
 
-	context->codec = avcodec_find_decoder(static_cast<AVCodecID>(codec_id));
+	context->codec = const_cast<AVCodec*>(avcodec_find_decoder(static_cast<AVCodecID>(codec_id)));
 	if (!context->codec)
 	{
 		remove_video_decoder(context);
@@ -110,22 +110,21 @@ int decode_video_frame(void *handle, void *rawBuffer, int rawBufferLength, int *
 	context->av_raw_packet.data = static_cast<uint8_t *>(rawBuffer);
 	context->av_raw_packet.size = rawBufferLength;
 
-	int got_frame;
+	//const int len = avcodec_decode_video2(context->av_codec_context, context->frame, &got_frame, &context->av_raw_packet);
 
-	const int len = avcodec_decode_video2(context->av_codec_context, context->frame, &got_frame, &context->av_raw_packet);
-
-	if (len != rawBufferLength)
+	const int ret = avcodec_send_packet(context->av_codec_context, &context->av_raw_packet);
+	if (ret < 0) {
 		return -3;
-
-	if (got_frame)
-	{
-		*frameWidth = context->av_codec_context->width;
-		*frameHeight = context->av_codec_context->height;
-		*framePixelFormat = context->av_codec_context->pix_fmt;
-		return 0;
 	}
 
-	return -4;
+	const int ret2 = avcodec_receive_frame(context->av_codec_context, context->frame);
+	if (ret2 < 0)
+		return -4;
+
+	*frameWidth = context->av_codec_context->width;
+	*frameHeight = context->av_codec_context->height;
+	*framePixelFormat = context->av_codec_context->pix_fmt;
+	return 0;
 }
 
 int scale_decoded_video_frame(void *handle, void *scalerHandle, void *scaledBuffer, int scaledBufferStride)
